@@ -94,7 +94,7 @@ local open_doc_from_cursor_position = function()
 end
 
 M.setup = function(config)
-    for k, v in pairs(config) do
+    for k, v in pairs(config or {}) do
         M.config[k] = v
     end
 
