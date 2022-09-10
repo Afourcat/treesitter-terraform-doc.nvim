@@ -4,24 +4,24 @@ This is a simple plugin to open documentation of the current Terraform resource.
 
 ## Features
 
-Add the command "OpenDoc" user command that opens the documentation of the currently targeted resource in terraform hcl file in your default browser.
+Add the "OpenDoc" user command that opens the documentation of the resource targeted by the cursor in a terraform "hcl" file, directly into your default browser.
 
 ## Requirements
 
 - git
 - [Neovim](https://github.com/neovim/neovim) ≥ 0.5
-- [Treesitter](https://github.com/nvim-treesitter/nvim-treesitter)
-- MacOS (right now)
+- [Treesitter](https://github.com/nvim-treesitter/nvim-treesitter) and the hcl parser
+- MacOS (by default)
 
 ## Installation
 
-Install from your favorite package manager:
-And then
+1. Install from your favorite package manager.
+2. Add the following to your terraform lsp config:
 
 ```lua
 require('lspconfig').terraformls.setup {
     on_attach = function()
-        -- This register the user command OpenDoc that you are able to bind to any key.
+        -- This register the user command "OpenDoc" that you are able to bind to any key.
         require('treesitter-terraform-doc').setup()
         ...
     end,
@@ -29,7 +29,20 @@ require('lspconfig').terraformls.setup {
 }
 
 ```
+---
+Here is another example with the default config:
+```lua
+require('treesitter-terraform-doc').setup({
+    command_name       = "OpenDoc",
+    url_opener_command = "!open"
+})
+```
 
-## TODO
-
-- Add a parameter to set the code used for url openning.
+For example, on linux you could change it to:
+```lua
+require('treesitter-terraform-doc').setup({
+    command_name       = "OpenDoc",
+    url_opener_command = "!firefox"
+})
+```
+in order to run the command with firefox.
