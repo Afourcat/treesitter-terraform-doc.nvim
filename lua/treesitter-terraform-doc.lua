@@ -4,6 +4,10 @@ local q = require('vim.treesitter.query')
 local M = {}
 
 M.version = "0.1.0"
+M.config = {
+    command_name = "OpenDoc",
+    url_opener_command = "!open"
+}
 
 local find_uppest_parrent = function(current_node)
     local root = ts_util.get_root_for_node(current_node)
@@ -11,13 +15,14 @@ local find_uppest_parrent = function(current_node)
 
     if parent:parent() == nil then
         print("No parent found")
-        return
+        return nil
     end
 
     while parent:parent() ~= root do
         current_node = parent
         parent = current_node:parent()
     end
+
     return current_node
 end
 
@@ -46,7 +51,7 @@ local get_resource_info = function(node, bufnr)
 
     if counter ~= 4 then
         print("Invalid resource targeted, try a 'resource' or 'data' block")
-        return
+        return nil, nil
     end
 
     -- split by snake_case
@@ -73,18 +78,28 @@ local open_doc_from_cursor_position = function()
     local bufnr = vim.api.nvim_get_current_buf()
     local cursor = ts_util.get_node_at_cursor()
     local node = find_uppest_parrent(cursor)
+    if node == nil then
+        return
+    end
 
     local resource_type, resource_name = get_resource_info(node, bufnr)
+    if resource_type == nil or resource_name == nil then
+        return
+    end
 
     local url = 'https://registry.terraform.io/providers/hashicorp/' ..
         resource_type .. '/latest/docs/resources/' .. resource_name
 
-    vim.cmd('silent exec "!open \'' .. url .. '\'"')
+    vim.cmd('silent exec "' .. M.url_opener_command .. ' \'' .. url .. '\'"')
 end
 
-M.setup = function()
+M.setup = function(config)
+    for k, v in pairs(config) do
+        M.config[k] = v
+    end
+
     vim.api.nvim_create_user_command(
-        'OpenDoc2',
+        M.config.command_name,
         open_doc_from_cursor_position,
         { nargs = 0 }
     )
