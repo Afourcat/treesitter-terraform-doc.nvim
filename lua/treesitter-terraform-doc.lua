@@ -90,7 +90,7 @@ local open_doc_from_cursor_position = function()
     local url = 'https://registry.terraform.io/providers/hashicorp/' ..
         resource_type .. '/latest/docs/resources/' .. resource_name
 
-    vim.cmd('silent exec "' .. M.url_opener_command .. ' \'' .. url .. '\'"')
+    vim.cmd('silent exec "' .. M.config.url_opener_command .. ' \'' .. url .. '\'"')
 end
 
 M.setup = function(config)
