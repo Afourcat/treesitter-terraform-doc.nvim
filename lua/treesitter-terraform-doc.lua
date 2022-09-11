@@ -9,7 +9,7 @@ M.config = {
     url_opener_command = "!open"
 }
 
-local find_uppest_parrent = function(current_node)
+local find_uppest_parent = function(current_node)
     local root = ts_util.get_root_for_node(current_node)
     local parent = current_node:parent()
 
@@ -77,7 +77,7 @@ end
 local open_doc_from_cursor_position = function()
     local bufnr = vim.api.nvim_get_current_buf()
     local cursor = ts_util.get_node_at_cursor()
-    local node = find_uppest_parrent(cursor)
+    local node = find_uppest_parent(cursor)
     if node == nil then
         return
     end
