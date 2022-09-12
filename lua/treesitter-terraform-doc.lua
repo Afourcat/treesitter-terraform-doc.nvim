@@ -3,10 +3,14 @@ local q = require('vim.treesitter.query')
 
 local M = {}
 
-M.version = "0.2.0"
+M.version = "0.3.0"
 M.config = {
-    command_name = "OpenDoc",
+    command_name       = "OpenDoc",
     url_opener_command = "!open"
+}
+M.block_type_url_mapping = {
+    resource = "resources",
+    data     = "data-sources"
 }
 
 ---
@@ -63,48 +67,48 @@ local get_matches_from_node = function(query, node, bufnr)
     local dict = {}
     local dict_length = 0
 
-    for _, captures, _ in query:iter_matches(node, bufnr) do
-        for id, capture_node in pairs(captures) do
-            dict_length = dict_length + 1
-            local name = query.captures[id]
-            dict[name] = q.get_node_text(capture_node, bufnr)
-        end
+    for id, capture, _ in query:iter_captures(node, bufnr) do
+        dict_length = dict_length + 1
+        local name = query.captures[id]
+        dict[name] = q.get_node_text(capture, bufnr)
     end
     return dict, dict_length
 end
 
 ---
---- Get the terraform resource type and name.
+--- Get the terraform block provider, type and name.
 ---
 -- @param node  tsnode  The node in which to look for the resource info.
 -- @param bufnr integer The buffer number.
+---@return      string? The resource provider.
 ---@return      string? The resource type.
 ---@return      string? The resource name.
 ---@nodiscard
-local get_resource_info = function(node, bufnr)
+local get_block_info = function(node, bufnr)
     local query = vim.treesitter.parse_query('hcl', [[
         (block
           (identifier) @block_type (#match? @block_type "resource|data")
           (string_lit
-            (template_literal) @resource_type
+            (template_literal) @resource
           )
           (string_lit
-            (template_literal) @resource_name
+            (template_literal) @user_name
           )
-        ) @main
+        )
     ]])
 
     local dict, dict_length = get_matches_from_node(query, node, bufnr)
 
     -- Checks if all captures have matched
-    if dict_length ~= 4 then
+    if dict_length ~= 3 then
         print("Invalid resource targeted, try a 'resource' or 'data' block")
         return nil, nil
     end
 
-    local resource_type, resource_name = split_at_first_occurence(dict["resource_type"], "_")
+    local provider, name = split_at_first_occurence(dict["resource"], "_")
+    local type = M.block_type_url_mapping[dict["block_type"]]
 
-    return resource_type, resource_name
+    return provider, type, name
 end
 
 ---
@@ -118,13 +122,13 @@ local open_doc_from_cursor_position = function()
         return
     end
 
-    local resource_type, resource_name = get_resource_info(node, bufnr)
-    if resource_type == nil or resource_name == nil then
+    local provider, type, name = get_block_info(node, bufnr)
+    if provider == nil or name == nil then
         return
     end
 
     local url = 'https://registry.terraform.io/providers/hashicorp/' ..
-        resource_type .. '/latest/docs/resources/' .. resource_name
+        provider .. '/latest/docs/' .. type .. '/' .. name
 
     vim.cmd('silent exec "' .. M.config.url_opener_command .. ' \'' .. url .. '\'"')
 end
