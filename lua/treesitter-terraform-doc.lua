@@ -1,6 +1,6 @@
 local ts_util = require('nvim-treesitter.ts_utils')
 local q = require('vim.treesitter.query')
-local utils = require('./utils')
+local utils = require('utils')
 
 local M = {}
 
