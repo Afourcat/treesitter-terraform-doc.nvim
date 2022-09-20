@@ -164,12 +164,39 @@ local open_doc_from_cursor_position = function()
 end
 
 ---
+--- Merge 2 table reccursivly
+---
+local table_merge = function(into, from)
+    local stack = {}
+    local node1 = into
+    local node2 = from
+
+    while (true) do
+        for k, v in pairs(node2) do
+            if (type(v) == "table" and type(node1[k]) == "table") then
+                table.insert(stack, { node1[k], node2[k] })
+            else
+                node1[k] = v
+            end
+        end
+        if (#stack > 0) then
+            local t = stack[#stack]
+            node1, node2 = t[1], t[2]
+            stack[#stack] = nil
+        else
+            break
+        end
+    end
+    return into
+end
+
+---
 --- Setup the configuration for the plugin.
 ---   Register the "OpenDoc" (or config.command_name) command.
 ---
 --- @param config table The configuration table.
 M.setup = function(config)
-    table.merge(M.config, config or {})
+    table_merge(M.config, config or {})
 
     vim.api.nvim_create_user_command(
         M.config.command_name,
