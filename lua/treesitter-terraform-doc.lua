@@ -169,9 +169,7 @@ end
 ---
 --- @param config table The configuration table.
 M.setup = function(config)
-    for k, v in pairs(config or {}) do
-        M.config[k] = v
-    end
+    table.merge(M.config, config or {})
 
     vim.api.nvim_create_user_command(
         M.config.command_name,
