@@ -1,6 +1,6 @@
 local ts_util = require('nvim-treesitter.ts_utils')
 local q = require('vim.treesitter.query')
-local utils = require('utils')
+local utils = require('treesitter-terraform-doc.utils')
 
 local M = {}
 
@@ -21,6 +21,10 @@ M.providers = {
     {
         prefix = "shell",
         name   = "scottwinkler",
+    },
+    {
+        prefix = "fastly",
+        name   = "fastly",
     }
 }
 M.default_provider = "hashicorp"
