@@ -1,5 +1,6 @@
 local ts_util = require('nvim-treesitter.ts_utils')
 local q = require('vim.treesitter.query')
+local utils = require('treesitter-terraform-doc.utils')
 
 local M = {}
 
@@ -12,6 +13,21 @@ M.block_type_url_mapping = {
     resource = "resources",
     data     = "data-sources"
 }
+M.providers = {
+    {
+        prefix = "ibm",
+        name   = "IBM-Cloud",
+    },
+    {
+        prefix = "shell",
+        name   = "scottwinkler",
+    },
+    {
+        prefix = "fastly",
+        name   = "fastly",
+    }
+}
+M.default_provider = "hashicorp"
 
 ---
 --- Get the first parent after root for the current_node
@@ -76,10 +92,27 @@ local get_matches_from_node = function(query, node, bufnr)
 end
 
 ---
+--- Find the corresponding provider
+---
+-- @param provider string The provider name previously extracted.
+-- @return         string The provider source.
+-- @nodiscard
+local find_provider_source = function(provider)
+    for _, v in ipairs(M.providers) do
+        if v.prefix == provider then
+            return v.name
+        end
+    end
+
+    return M.default_provider
+end
+
+---
 --- Get the terraform block provider, type and name.
 ---
 -- @param node  tsnode  The node in which to look for the resource info.
 -- @param bufnr integer The buffer number.
+---@return      string? The resource provider source.
 ---@return      string? The resource provider.
 ---@return      string? The resource type.
 ---@return      string? The resource name.
@@ -108,7 +141,9 @@ local get_block_info = function(node, bufnr)
     local provider, name = split_at_first_occurence(dict["resource"], "_")
     local type = M.block_type_url_mapping[dict["block_type"]]
 
-    return provider, type, name
+    local source = find_provider_source(provider)
+
+    return source, provider, type, name
 end
 
 ---
@@ -122,12 +157,12 @@ local open_doc_from_cursor_position = function()
         return
     end
 
-    local provider, type, name = get_block_info(node, bufnr)
+    local source, provider, type, name = get_block_info(node, bufnr)
     if provider == nil or name == nil then
         return
     end
 
-    local url = 'https://registry.terraform.io/providers/hashicorp/' ..
+    local url = 'https://registry.terraform.io/providers/' .. source .. '/' ..
         provider .. '/latest/docs/' .. type .. '/' .. name
 
     vim.cmd('silent exec "' .. M.config.url_opener_command .. ' \'' .. url .. '\'"')
@@ -139,9 +174,7 @@ end
 ---
 --- @param config table The configuration table.
 M.setup = function(config)
-    for k, v in pairs(config or {}) do
-        M.config[k] = v
-    end
+    utils.table_merge(M.config, config or {})
 
     vim.api.nvim_create_user_command(
         M.config.command_name,

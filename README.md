@@ -46,3 +46,17 @@ require('treesitter-terraform-doc').setup({
 })
 ```
 in order to run the command with firefox.
+
+## Custom Provider
+
+You can add or override provider by adding the following to your config:
+
+```lua
+require('treesitter-terraform-doc').setup({
+    ...,
+    provider = {
+        prefix = "test",
+        name   = "custom-provider-source"
+    }
+})
+```
