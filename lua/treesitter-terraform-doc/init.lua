@@ -25,6 +25,10 @@ M.providers = {
     {
         prefix = "fastly",
         name   = "fastly",
+    },
+    {
+        prefix = "vcd",
+        name = "vmware"
     }
 }
 M.default_provider = "hashicorp"
