@@ -31,4 +31,16 @@ M.table_merge = function(into, from)
     return into
 end
 
+---
+--- Concat 2 tables
+---@param  t1 table The first table.
+---@param  t2 table The second table.
+---@return    table Return the first table.
+function M.table_concat(t1, t2)
+    for i = 1, #t2 do
+        t1[#t1 + 1] = t2[i]
+    end
+    return t1
+end
+
 return M

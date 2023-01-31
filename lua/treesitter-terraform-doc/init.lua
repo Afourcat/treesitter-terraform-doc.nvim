@@ -178,7 +178,9 @@ end
 ---
 --- @param config table The configuration table.
 M.setup = function(config)
-    utils.table_merge(M.config, config or {})
+    utils.table_concat(M.providers, config.providers or {})
+    config.providers = nil
+    utils.table_concat(M.config, config or {})
 
     vim.api.nvim_create_user_command(
         M.config.command_name,
