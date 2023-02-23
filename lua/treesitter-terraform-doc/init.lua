@@ -29,6 +29,10 @@ M.providers = {
     {
         prefix = "vcd",
         name = "vmware"
+    },
+    {
+        prefix = "newrelic",
+        name = "newrelic"
     }
 }
 M.default_provider = "hashicorp"
