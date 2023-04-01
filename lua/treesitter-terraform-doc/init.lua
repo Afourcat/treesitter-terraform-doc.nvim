@@ -6,9 +6,14 @@ local M = {}
 
 M.version = "0.3.0"
 M.config = {
+    -- The vim user command that will trigger the plugin.
     command_name       = "OpenDoc",
+
+    -- The command that will take the url as a parameter.
     url_opener_command = "!open",
-    jump_argument      = true,
+
+    -- If true, the cursor will jump to the anchor in the documentation.
+    jump_anchor      = true,
 }
 M.block_type_url_mapping = {
     resource = "resources",
@@ -97,7 +102,7 @@ local get_matches_from_node = function(query, node, bufnr, current_line)
         if not dict[name] then              -- Prevent inserting the same thing twice in the array.
             if name == "argument_name" then -- If the argument is the name of one of the field return it.
                 local a = capture:range()
-                if M.config.jump_argument and current_line == a + 1 then
+                if M.config.jump_anchor and current_line == a + 1 then
                     dict_length = dict_length + 1
                     dict[name] = vim.treesitter.query.get_node_text(capture, bufnr)
                 end
@@ -193,7 +198,7 @@ local open_doc_from_cursor_position = function()
     local url = 'https://registry.terraform.io/providers/' .. source .. '/' ..
         provider .. '/latest/docs/' .. type .. '/' .. name
 
-    if M.config.jump_argument and argument_name then
+    if M.config.jump_anchor and argument_name then
         url = url .. "\\\\#" .. argument_name
     end
 
