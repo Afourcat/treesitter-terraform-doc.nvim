@@ -7,7 +7,8 @@ local M = {}
 M.version = "0.3.0"
 M.config = {
     command_name       = "OpenDoc",
-    url_opener_command = "!open"
+    url_opener_command = "!open",
+    jump_argument      = true,
 }
 M.block_type_url_mapping = {
     resource = "resources",
@@ -87,14 +88,24 @@ end
 -- @param  bufnr integer The buffer number.
 ---@return       table   The dictionary of all match and their text value.
 ---@return       integer The length of the dictionary.
-local get_matches_from_node = function(query, node, bufnr)
+local get_matches_from_node = function(query, node, bufnr, current_line)
     local dict = {}
     local dict_length = 0
 
     for id, capture, _ in query:iter_captures(node, bufnr) do
-        dict_length = dict_length + 1
         local name = query.captures[id]
-        dict[name] = q.get_node_text(capture, bufnr)
+        if not dict[name] then              -- Prevent inserting the same thing twice in the array.
+            if name == "argument_name" then -- If the argument is the name of one of the field return it.
+                local a = capture:range()
+                if M.config.jump_argument and current_line == a + 1 then
+                    dict_length = dict_length + 1
+                    dict[name] = vim.treesitter.query.get_node_text(capture, bufnr)
+                end
+            else
+                dict_length = dict_length + 1
+                dict[name] = vim.treesitter.query.get_node_text(capture, bufnr)
+            end
+        end
     end
     return dict, dict_length
 end
@@ -124,6 +135,7 @@ end
 ---@return      string? The resource provider.
 ---@return      string? The resource type.
 ---@return      string? The resource name.
+---@return      string? The argument name.
 ---@nodiscard
 local get_block_info = function(node, bufnr)
     local query = vim.treesitter.parse_query('hcl', [[
@@ -135,13 +147,21 @@ local get_block_info = function(node, bufnr)
           (string_lit
             (template_literal) @user_name
           )
+          (body
+            (attribute
+                (identifier) @argument_name
+            )
+          )
         )
     ]])
 
-    local dict, dict_length = get_matches_from_node(query, node, bufnr)
+    local cursor = vim.api.nvim_win_get_cursor(0)
+    local current_line = cursor[1]
+    local dict, dict_length = get_matches_from_node(query, node, bufnr, current_line)
 
+    print(dict_length)
     -- Checks if all captures have matched
-    if dict_length ~= 3 then
+    if dict_length ~= 3 and dict_length ~= 4 then
         print("Invalid resource targeted, try a 'resource' or 'data' block")
         return nil, nil
     end
@@ -151,7 +171,7 @@ local get_block_info = function(node, bufnr)
 
     local source = find_provider_source(provider)
 
-    return source, provider, type, name
+    return source, provider, type, name, dict["argument_name"]
 end
 
 ---
@@ -165,7 +185,7 @@ local open_doc_from_cursor_position = function()
         return
     end
 
-    local source, provider, type, name = get_block_info(node, bufnr)
+    local source, provider, type, name, argument_name = get_block_info(node, bufnr)
     if provider == nil or name == nil then
         return
     end
@@ -173,7 +193,12 @@ local open_doc_from_cursor_position = function()
     local url = 'https://registry.terraform.io/providers/' .. source .. '/' ..
         provider .. '/latest/docs/' .. type .. '/' .. name
 
-    vim.cmd('silent exec "' .. M.config.url_opener_command .. ' \'' .. url .. '\'"')
+    if M.config.jump_argument and argument_name then
+        url = url .. "\\\\#" .. argument_name
+    end
+
+    local cmd = 'silent exec "' .. M.config.url_opener_command .. ' \'' .. url .. '\'"'
+    vim.cmd(cmd)
 end
 
 ---
