@@ -164,7 +164,6 @@ local get_block_info = function(node, bufnr)
     local current_line = cursor[1]
     local dict, dict_length = get_matches_from_node(query, node, bufnr, current_line)
 
-    print(dict_length)
     -- Checks if all captures have matched
     if dict_length ~= 3 and dict_length ~= 4 then
         print("Invalid resource targeted, try a 'resource' or 'data' block")
