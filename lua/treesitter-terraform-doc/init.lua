@@ -104,11 +104,11 @@ local get_matches_from_node = function(query, node, bufnr, current_line)
                 local a = capture:range()
                 if M.config.jump_anchor and current_line == a + 1 then
                     dict_length = dict_length + 1
-                    dict[name] = vim.treesitter.query.get_node_text(capture, bufnr)
+                    dict[name] = vim.treesitter.get_node_text(capture, bufnr)
                 end
             else
                 dict_length = dict_length + 1
-                dict[name] = vim.treesitter.query.get_node_text(capture, bufnr)
+                dict[name] = vim.treesitter.get_node_text(capture, bufnr)
             end
         end
     end
@@ -143,7 +143,7 @@ end
 ---@return      string? The argument name.
 ---@nodiscard
 local get_block_info = function(node, bufnr)
-    local query = vim.treesitter.parse_query('hcl', [[
+    local query = vim.treesitter.query.parse('hcl', [[
         (block
           (identifier) @block_type (#match? @block_type "resource|data")
           (string_lit
