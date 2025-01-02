@@ -155,7 +155,7 @@ local get_block_info = function(node, bufnr)
           (body
             (attribute
                 (identifier) @argument_name
-            )
+            )?
           )
         )
     ]])
