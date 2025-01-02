@@ -22,7 +22,7 @@ Add the "OpenDoc" user command that opens the documentation of the resource targ
 require('lspconfig').terraformls.setup {
     on_attach = function()
         -- This register the user command "OpenDoc" that you are able to bind to any key.
-        require('treesitter-terraform-doc').setup()
+        require('treesitter-terraform-doc').setup{}
         ...
     end,
     ...
