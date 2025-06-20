@@ -39,6 +39,10 @@ M.providers = {
     {
         prefix = "newrelic",
         name = "newrelic"
+    },
+    {
+        prefix = "cloudflare",
+        name = "cloudflare"
     }
 }
 M.default_provider = "hashicorp"
