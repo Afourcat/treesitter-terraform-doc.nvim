@@ -1,10 +1,12 @@
 local utils = require("treesitter-terraform-doc.utils")
+local api = require("treesitter-terraform-doc.api")
+local window = require("treesitter-terraform-doc.window")
 
 local M = {}
 
-M.version = "0.3.0"
+M.version = "0.4.0"
 M.config = {
-	-- The vim user command that will trigger the plugin.
+	-- The vim user command that will trigger the plugin (opens in browser).
 	command_name = "OpenDoc",
 
 	-- The command that will take the url as a parameter.
@@ -12,6 +14,24 @@ M.config = {
 
 	-- If true, the cursor will jump to the anchor in the documentation.
 	jump_anchor = true,
+
+	-- The vim user command that will open documentation in a floating window.
+	window_command_name = "OpenDocWindow",
+
+	-- Floating window options.
+	window = {
+		width = 0.8, -- Width as percentage of editor width (0.0-1.0)
+		height = 0.8, -- Height as percentage of editor height
+		border = "rounded", -- Border style: "none", "single", "double", "rounded", "solid", "shadow"
+		title = "Terraform Documentation",
+		title_pos = "center", -- "left", "center", "right"
+	},
+
+	-- Cache options for provider version lookups.
+	cache = {
+		enabled = true,
+		ttl = 3600, -- Cache TTL in seconds (1 hour)
+	},
 }
 M.block_type_url_mapping = {
 	resource = "resources",
@@ -233,14 +253,104 @@ local open_doc_from_cursor_position = function()
 end
 
 ---
+--- Open the terraform documentation in a floating window.
+---
+local open_doc_in_window = function()
+	local bufnr = vim.api.nvim_get_current_buf()
+	local parser = vim.treesitter.get_parser(0, "terraform")
+	if parser == nil then
+		vim.notify(
+			"No parser found for the current buffer, please ensure you are starting treesitter properly.",
+			vim.log.levels.ERROR
+		)
+		return
+	end
+
+	local cursor_node
+	local ok = pcall(require, "nvim-treesitter.ts_utils")
+	if ok then
+		local ts_utils = require("nvim-treesitter.ts_utils")
+		cursor_node = ts_utils.get_node_at_cursor()
+	else
+		cursor_node = vim.treesitter.get_node()
+	end
+
+	local node = find_uppest_parent(cursor_node)
+	if node == nil then
+		return
+	end
+
+	local source, provider, type, name, _ = get_block_info(node, bufnr)
+	if provider == nil or name == nil then
+		return
+	end
+
+	-- Show loading message
+	vim.notify("Fetching documentation...", vim.log.levels.INFO)
+
+	-- Set cache TTL
+	if M.config.cache.enabled then
+		api.set_cache_ttl(M.config.cache.ttl)
+	else
+		api.set_cache_ttl(0)
+	end
+
+	-- Step 1: Get provider version ID
+	local version_id, err = api.get_provider_version_id(source, provider)
+	if err then
+		vim.notify("Failed to get provider version: " .. err, vim.log.levels.ERROR)
+		return
+	end
+
+	-- Step 2: Get documentation ID
+	local doc_id, doc_err = api.get_doc_id(version_id, type, name)
+	if doc_err then
+		vim.notify("Failed to find documentation: " .. doc_err, vim.log.levels.ERROR)
+		return
+	end
+
+	-- Step 3: Fetch documentation content
+	local content, content_err = api.fetch_doc_content(doc_id)
+	if content_err then
+		vim.notify("Failed to fetch documentation: " .. content_err, vim.log.levels.ERROR)
+		return
+	end
+
+	-- Step 4: Strip frontmatter
+	content = api.strip_frontmatter(content)
+
+	-- Step 5: Open in floating window
+	local win = window.open(content, {
+		width = M.config.window.width,
+		height = M.config.window.height,
+		border = M.config.window.border,
+		title = M.config.window.title .. " - " .. provider .. "_" .. name,
+		title_pos = M.config.window.title_pos,
+	})
+
+	if not win then
+		vim.notify("Failed to open documentation window", vim.log.levels.ERROR)
+	end
+end
+
+---
 --- Setup the configuration for the plugin.
 ---   Register the "OpenDoc" (or config.command_name) command.
+---   Register the "OpenDocWindow" (or config.window_command_name) command.
 ---
 --- @param config table The configuration table.
 M.setup = function(config)
 	M.config = utils.merge(M.config, config)
 
+	-- Register browser command (existing)
 	vim.api.nvim_create_user_command(M.config.command_name, open_doc_from_cursor_position, { nargs = 0 })
+
+	-- Register window command (new)
+	vim.api.nvim_create_user_command(M.config.window_command_name, open_doc_in_window, { nargs = 0 })
 end
+
+-- Export submodules for advanced usage
+M.api = api
+M.window = window
 
 return M
