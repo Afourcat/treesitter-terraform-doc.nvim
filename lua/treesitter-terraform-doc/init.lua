@@ -211,7 +211,6 @@ local open_doc_from_cursor_position = function()
 	end
 
 	local source, provider, type, name, argument_name = get_block_info(node, bufnr)
-	print(source, provider, type, name, argument_name)
 	if provider == nil or name == nil then
 		return
 	end
